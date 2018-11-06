@@ -1,3 +1,0 @@
-evaluationDependsOn(":server:api")
-apply plugin: 'java'
-apply plugin: 'org.labkey.module'
