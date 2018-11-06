@@ -1,0 +1,10 @@
+<module xmlns="http://labkey.org/moduleProperties/xml/">
+    <clientDependencies>
+        <dependency path="Ext4ClientApi"/>
+		<dependency path="/extWidgets/ImportPanel.js"/>
+        <dependency path="extWidgets/IconPanel.css" />
+        <dependency path="extWidgets/IconPanel.js" />
+		<dependency path="vis/vis" />
+		<dependency path="vischart" />
+    </clientDependencies>
+</module>

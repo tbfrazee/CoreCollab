@@ -1,0 +1,83 @@
+<tables xmlns="http://labkey.org/data/xml">
+    <table tableName="folder_registration" tableDbType="TABLE" useColumnOrder="true">
+        <tableTitle>Core Collaboration Folder Registrations</tableTitle>
+        <auditLogging>DETAILED</auditLogging>
+        <pkColumnName>Container</pkColumnName>
+        <columns>
+            <column columnName="Container">
+                <columnTitle>Container</columnTitle>
+                <nullable>false</nullable>
+            </column>
+            <column columnName="Type">
+                <columnTitle>Type</columnTitle>
+                <nullable>false</nullable>
+            </column>
+            <column columnName="Created">
+                <columnTitle>Created</columnTitle>
+            </column>
+            <column columnName="CreatedBy">
+                <columnTitle>Created By</columnTitle>
+            </column>
+            <column columnName="Modified">
+                <columnTitle>Modified</columnTitle>
+            </column>
+            <column columnName="ModifiedBy">
+                <columnTitle>Modified By</columnTitle>
+            </column>
+        </columns>
+    </table>
+    <table tableName="team_query_customizers" tableDbType="TABLE" useColumnOrder="true">
+        <tableTitle>Core Collaboration Team Query Customizers</tableTitle>
+        <auditLogging>DETAILED</auditLogging>
+        <pkColumnName>Container</pkColumnName>
+        <columns>
+            <column columnName="Container">
+                <columnTitle>Container</columnTitle>
+                <nullable>false</nullable>
+            </column>
+            <column columnName="customizer">
+                <columnTitle>Customizer</columnTitle>
+                <nullable>true</nullable>
+            </column>
+            <column columnName="Created">
+                <columnTitle>Created</columnTitle>
+            </column>
+            <column columnName="CreatedBy">
+                <columnTitle>Created By</columnTitle>
+            </column>
+            <column columnName="Modified">
+                <columnTitle>Modified</columnTitle>
+            </column>
+            <column columnName="ModifiedBy">
+                <columnTitle>Modified By</columnTitle>
+            </column>
+        </columns>
+    </table>
+    <table tableName="shared_datasets" tableDbType="TABLE" useColumnOrder="true">
+        <tableTitle>Core Collaboration Container Shared Datasets</tableTitle>
+        <auditLogging>DETAILED</auditLogging>
+        <pkColumnName>Container</pkColumnName>
+        <columns>
+            <column columnName="Container">
+                <columnTitle>Container</columnTitle>
+                <nullable>false</nullable>
+            </column>
+            <column columnName="DatasetIds">
+                <columnTitle>Type</columnTitle>
+                <nullable>false</nullable>
+            </column>
+            <column columnName="Created">
+                <columnTitle>Created</columnTitle>
+            </column>
+            <column columnName="CreatedBy">
+                <columnTitle>Created By</columnTitle>
+            </column>
+            <column columnName="Modified">
+                <columnTitle>Modified</columnTitle>
+            </column>
+            <column columnName="ModifiedBy">
+                <columnTitle>Modified By</columnTitle>
+            </column>
+        </columns>
+    </table>
+</tables>

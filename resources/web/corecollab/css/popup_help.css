@@ -1,0 +1,63 @@
+/* Tooltip icon */
+.popup-tooltip-icon
+{
+    position: relative;
+    display: inline-block;
+    cursor: help;
+    margin-left: 10px;
+    padding: 0px 3px 0px 3px;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 3px;
+    font-size: 14px;
+}
+
+/* Tooltip container */
+.popup-tooltip-container
+{
+    position: relative;
+}
+
+/* Tooltip text */
+.popup-tooltip-text
+{
+    visibility: hidden;
+    width: 70vw;
+    background-color: #e5e5e5;
+    color: black;
+    text-align: left;
+    margin: 0 5px 0 5px;
+    padding: 5px 3px 5px 8px;
+    border-radius: 6px;
+    border-style: outset;
+
+    /* Positioning */
+    position: absolute;
+    z-index: 1;
+    top: -5px;
+    left: 10px;
+
+    /* Fade in */
+    opacity: 0;
+    transition: opacity .5s;
+}
+
+/* Arrow */
+/*.tooltip .tooltiptext::after
+{
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    margin-top: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent gray transparent transparent;
+}*/
+
+/* Show on hover */
+.popup-tooltip-icon:hover + .popup-tooltip-container > .popup-tooltip-text
+{
+    visibility: visible;
+    opacity: 1;
+}

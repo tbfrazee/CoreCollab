@@ -1,0 +1,1 @@
+<%= "CORE THE WORLD!" %>
