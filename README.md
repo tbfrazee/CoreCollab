@@ -5,6 +5,8 @@ CoreCollab is a LabKey module that allows selected datasets and queries to be sh
 
 ## Installation
 
+TODO
+
 ## Usage
 Each folder that is going to share or join shared data must have a defined CoreCollab Folder Type. This can be defined using the CoreCollab Folder Settings (`CCFolderSettings`) view. Once folder types and shared datasets are set up, shared datasets should show up (sorted by folder) in the Grid Views menu.
 
