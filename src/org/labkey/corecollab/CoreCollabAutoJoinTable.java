@@ -1,12 +1,4 @@
 /*
-This class iterates through shared datasets of the passed containerToJoin (or registered Core folder, if null) and creates a foreign key lookup to each.
-For demographic datasets, join is simply on ptid.
-For non-demographic datasets, 2 join styles are supported - simple date matching and "most recent previous" row.
-
-Unapologetically based on the DatasetAutoJoinTable from the study module.
-*/
-
-/*
 * Created by tfrazee
 * 5/23/17
 * Updated 10/28/17
@@ -55,6 +47,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Creates a junction table connecting an active query with all shared CoreCollab queries.
+ */
+
 public class CoreCollabAutoJoinTable extends VirtualTable
 {
     private static final String PTID_NAME = "participantId";
@@ -66,7 +62,19 @@ public class CoreCollabAutoJoinTable extends VirtualTable
     private Study _joinedStudy;
     private Container _joinedContainer;
 
-    public CoreCollabAutoJoinTable(AbstractTableInfo source, @Nullable ColumnInfo idCol, @Nullable FieldKey dateKey, @Nullable Container containerToJoin, @Nullable CCJoinType joinType, @Nullable AbstractCoreCollabCustomizer sourceCustomizer)
+    /**
+     * Creates a new CoreCollabAutoJoinTable to be joined to a source query or table.
+     * @param source The active table that this should be joined to.
+     * @param idCol The source table participant id column, if it exists.
+     * @param dateKey The source table date column, if it exists.
+     * @param containerToJoin The Container that contains the shared queries that this will join to the source table
+     * @param joinType The CCJoinType representing how to join shared data, by date or most recent previous date
+     * @param sourceCustomizer The customizer object for the source table. customizeSubTable will be called on this.
+     */
+
+    public CoreCollabAutoJoinTable(AbstractTableInfo source, @Nullable ColumnInfo idCol, @Nullable FieldKey dateKey,
+                                   @Nullable Container containerToJoin, @Nullable CCJoinType joinType,
+                                   @Nullable AbstractCoreCollabCustomizer sourceCustomizer)
     {
         super(DbSchema.get("study", DbSchemaType.Module), "CCAutoJoin");
 
@@ -144,6 +152,7 @@ public class CoreCollabAutoJoinTable extends VirtualTable
         List _datasets = _joinedStudy.getDatasets();
         List<Integer> sharedDatasets = CoreCollabManager.get().getSharedDatasets(_joinedContainer);
 
+        //Get shared Dataset tables to join
         for(Object dsObj : _datasets)
         {
             try
@@ -173,13 +182,13 @@ public class CoreCollabAutoJoinTable extends VirtualTable
             catch (Exception ignored){}
         }
 
+        //Get shared user-defined queries to join
+        //Requires that a "Primary Dataset" has been defined for each shared query in CCFolderSettings
         Map<String, Integer> sharedQueries = CoreCollabManager.get().getSharedQueryMap(_joinedContainer);
-
         for(String qName : sharedQueries.keySet())
         {
             try
             {
-                //QueryDefinition qd = QueryService.get().getQueryDef(_sourceSchema.getUser(), _joinedContainer, "study", qName);
                 QueryDefinition qd = _joinedSchema.getQueryDef(qName);
                 Dataset ds = _joinedStudy.getDataset(sharedQueries.get(qName));
                 if(qd != null && ds != null && ds.canRead(_sourceSchema.getUser()))
@@ -199,156 +208,6 @@ public class CoreCollabAutoJoinTable extends VirtualTable
             catch(Exception ignored){}
         }
 
-        /*
-        ****************************
-        NOT YET IMPLEMENTED - This part is probably not going to happen
-        ****************************
-        Joining custom queries to Autojoin table
-
-        //This part was an attempt at parsing the query SQL to get dataset names instead of asking the user for a primary dataset
-        //For now, this is abandoned, as there are too many edge cases that can result in undesired results
-
-        //Shared queries
-        //All in a Try block, because SQL errors we can't control can throw exceptions (which we'll ignore and skip the query)
-        Map<String, QueryDefinition> queryMap = QueryService.get().getQueryDefs(_sourceSchema.getUser(), _joinedContainer, "study");
-        for(Map.Entry<String, QueryDefinition> entry : queryMap.entrySet())
-        {
-            try
-            {
-                List<QueryException> errors = new ArrayList<>();
-                TableInfo queryTable = entry.getValue().getTable(errors, true);
-                FilteredTable filteredTable = new CCFilteredTable(queryTable);
-
-                if(_idCol == null)
-                {
-                    ColumnInfo newCol = makeColumn(filteredTable, ptidColName, false, joinType);
-                    defaultVisible.add(FieldKey.fromParts(newCol.getName()));
-                }
-                else if(_dateKey != null)
-                {
-                    //In order to avoid having to fully parse out every possible query format, we'll set some rules.
-                    //1) The _dateKey column must be defined in the first SELECT block
-                    //2) The participantId must come from the same real table as _dateKey
-                    //3) _dateKey must be a value directly from the database - no function calls
-
-                    String alias = null;
-
-                    SQLFragment qFrag = queryTable != null ? queryTable.getFromSQL("query") : null;
-                    String qSQL = qFrag != null ? qFrag.getSQL() : null;
-                    qSQL = qSQL.replaceAll("--.*?$", ""); //Remove comment lines
-
-                    String mainSelect = qSQL.substring(qSQL.indexOf("SELECT"), qSQL.indexOf("FROM"));
-                    if(mainSelect.toUpperCase().contains("AS " + _dateKey.getName().toUpperCase()))
-                    {
-                        //Do stuff
-                        Matcher match = Pattern.compile("(?i)^(\\S+)\\sAS\\s" + _dateKey.getName()).matcher(mainSelect);
-                        if(match.find())
-                            mainSelect = match.group(1);
-                    }
-                    if(mainSelect.toUpperCase().contains("." + _dateKey.getName().toUpperCase()))
-                    {
-                        //Do stuff
-                        Matcher match = Pattern.compile("(?i)(\\S+)\\." + _dateKey.getName()).matcher(mainSelect);
-                        if(match.find())
-                        {
-                            alias = match.group(1);
-                        }
-                    }
-                    else if(mainSelect.toUpperCase().contains(_dateKey.getName().toUpperCase()))
-                    {
-                        String from = qSQL.substring(qSQL.toUpperCase().indexOf("FROM"), qSQL.length());
-                        Matcher match = Pattern.compile("\\(SELECT\\s\\*\\s(\\S+)\\sx").matcher(from);
-                        if(match.find())
-                            alias = match.group(1);
-                    }
-
-
-                    //First we need to figure out if the _dateKey is defined using an AS clause.
-                    //If it is, there could be anything before it, which we'll need to attempt to parse out.
-                    Matcher aliasMatches = Pattern.compile("(?i)[\\s\\n\\t,](.*)\\sAS\\s" + _dateKey.getName()).matcher(qSQL);
-
-                    while (aliasMatches.find())
-                    {
-                        if (!aliasMatches.group(1).contains("--"))   //Ignore if commented
-                        {
-                            //If the captured group is a single word without a ".", then we can go directly to the next FROM clause
-                            //If it does have a decimal, then we can capture the alias from it
-                            //If it's more complicated, we'll have to parse things out
-                            String capture = aliasMatches.group(1);
-
-                            //First, is this a function? For now, we're going to ignore it - too many possibilities
-                            if (Pattern.compile("(?i)^[A-Z0-9_$]*+\\(.*\\)$").matcher(capture).find())
-                            {
-                                alias = "~~SKIP~~";
-                                break;
-                            }
-                            else if (Pattern.compile("(?i)^[A-Z0-9_$]*+\\.[A-Z0-9_$]*+$").matcher(capture).find())
-                            {
-                                aliasMatches = Pattern.compile("(?i)^([A-Z0-9_$]*+)\\.[A-Z0-9_$]*+$").matcher(capture);
-                                aliasMatches.find();
-                                alias = aliasMatches.group(1);
-                            }
-                            else if (!Pattern.compile("[\\.()\"']").matcher(capture).find())
-                            {
-                                aliasMatches = Pattern.compile("(?i)FROM\\s([A-Z0-9_$]+)").matcher(capture);
-                                aliasMatches.find();
-                                if (Pattern.matches("(?i)\\(*SELECT", aliasMatches.group(1)))
-                                    alias = aliasMatches.group(1);
-                                else
-                                {
-                                    alias = "~~SKIP~~";
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (alias != null)
-                            break;
-                    }
-
-                    if(alias != null && alias.equals("~~SKIP~~"))
-                        continue;
-
-                    //If _dateKey is not specified by an AS clause, search it out as an explicit field name
-                    if (alias == null)
-                    {
-                        if (Pattern.compile("(?i)[\\s\\n\\t,]([A-Z0-9_$]+)\\." + _dateKey.getName()).matcher(qSQL).find())
-                        {
-                            aliasMatches = Pattern.compile("(?i)[\\s\\n\\t,]([A-Z0-9_$]+)\\." + _dateKey.getName()).matcher(qSQL);
-                            aliasMatches.find();
-                            alias = aliasMatches.group(1);
-                        }
-                        else if (!Pattern.compile("[\\.()\"']").matcher(qSQL).find())
-                        {
-                            aliasMatches = Pattern.compile("(?i)FROM\\s([A-Z0-9_$]+)").matcher(qSQL);
-                            aliasMatches.find();
-                            if (Pattern.matches("(?i)\\(*SELECT", aliasMatches.group(1)))
-                                alias = aliasMatches.group(1);
-                            else
-                                continue;
-                        }
-                    }
-
-                    if (alias != null)
-                    {
-                        String realTableName;
-                        String dsSchemaName = StudyService.get().getDatasetSchema().getName();
-                        String regex = dsSchemaName + "\\.(\\S*).*?" + alias;
-                        Matcher rtnMatches = Pattern.compile(regex).matcher(qSQL);
-                        rtnMatches.find();
-                        realTableName = rtnMatches.group(1);
-                        if(realTableName != null)
-                        {
-                            ColumnInfo newCol = makeColumn(filteredTable, realTableName, ptidColName, false, joinType);
-                            defaultVisible.add(FieldKey.fromParts(newCol.getName()));
-                        }
-                    }
-                }
-            }
-            catch(Exception ignored){}
-        }
-        */
-
         setDefaultVisibleColumns(defaultVisible);
 
     }
@@ -358,8 +217,15 @@ public class CoreCollabAutoJoinTable extends VirtualTable
         return makeColumn(foreignTable, null, ptidColName, isDemographic, joinType);
     }
 
-    //Makes a lookup column for each shared dataset
-    //Join criteria are based on dataset type and passed joinType
+    /**
+     * Makes a column joining to a foreign table
+     * @param foreignTable Table to be joined
+     * @param foreignTableName Name of table to be joined, if known
+     * @param ptidColName Source table participant id column name
+     * @param isDemographic True if source is demographic data (no date column)
+     * @param joinType CCJoinType to determine if foreign table is joined on exact date, or most recent previous date
+     * @return A ColumnInfo containing a Foreign Key to the foreignTable
+     */
     private ColumnInfo makeColumn(FilteredTable foreignTable, @Nullable String foreignTableName, String ptidColName, boolean isDemographic, CCJoinType joinType)
     {
         String colName = foreignTable.getName();
@@ -391,12 +257,16 @@ public class CoreCollabAutoJoinTable extends VirtualTable
                 if(foreignTableName == null)
                 {
                     Domain realTableDomain = foreignTable.getRealTable().getDomain();
-                    foreignTableName = realTableDomain != null ? StorageProvisioner.createTableInfo(realTableDomain).getSelectName() : null;
+                    foreignTableName = realTableDomain != null ?
+                            StorageProvisioner.createTableInfo(realTableDomain).getSelectName() : null;
                 }
 
                 if(foreignTableName != null)
                 {
-                    SQLFragment sql = new SQLFragment("(SELECT " + _dateKey.getName() + " FROM " + foreignTableName + " ch WHERE ch." + _dateKey.getName() + " <= " + ExprColumn.STR_TABLE_ALIAS + ".date AND ch.participantId = " + ExprColumn.STR_TABLE_ALIAS + "." + PTID_NAME + " ORDER BY " + _dateKey.getName() + " DESC LIMIT 1)");
+                    SQLFragment sql = new SQLFragment("(SELECT " + _dateKey.getName() + " FROM " + foreignTableName +
+                            " ch WHERE ch." + _dateKey.getName() + " <= " + ExprColumn.STR_TABLE_ALIAS +
+                            ".date AND ch.participantId = " + ExprColumn.STR_TABLE_ALIAS + "." + PTID_NAME +
+                            " ORDER BY " + _dateKey.getName() + " DESC LIMIT 1)");
                     col = new ExprColumn(_source, colName, sql, JdbcType.DATE, _idCol, getColumn(_dateKey));
                     fk = new CoreFK(foreignTable, _dateKey.getName());
                 }
@@ -415,42 +285,18 @@ public class CoreCollabAutoJoinTable extends VirtualTable
         col.setFk(fk);
         col.setName(foreignTable.getName());
         col.setLabel(foreignTable.getTitle());
-        col.setDescription("Values from table " + foreignTable.getName() + " from folder " + _joinedContainer.getName() + " joined on " + fk.getJoinDescription());
+        col.setDescription("Values from table " + foreignTable.getName() + " from folder " + _joinedContainer.getName() +
+                " joined on " + fk.getJoinDescription());
         col.setIsUnselectable(false);
         col.setUserEditable(false);
 
         return col;
     }
 
-    //TEST
-    /*
-    private class CCLookupColumn extends LookupColumn
-    {
-        public CCLookupColumn(ColumnInfo foreignKey, ColumnInfo lookupKey, ColumnInfo lookupColumn)
-        {
-            super(foreignKey, lookupKey, lookupColumn);
-        }
-
-        @Override
-        protected SQLFragment getJoinCondition(String tableAliasName, ColumnInfo fk, ColumnInfo pk, boolean equalOrIsNull)
-        {
-            SQLFragment condition = new SQLFragment();
-
-            condition.append("(");
-            condition.append("(SELECT ").append(fk.getValueSql(tableAliasName)).append(" FROM ").append(fk.getSelectName()).append(")");
-            condition.append(" <= ");
-            condition.append("(SELECT ").append(pk.getValueSql(tableAliasName)).append(" FROM ").append(pk.getSelectName()).append(")");
-            condition.append(" AND ");
-            condition.append(fk.getSelectName()).append(".participantId = ").append(pk.getSelectName()).append(".participantId");
-
-            return condition;
-        }
-    }
-    */
-
-
-    //CoreFK simply extends LookupForeignKey to implement getLookupTableInfo to return the table that is passed into it
-    //It also adds a String joinDescription for use as the column description
+    /**
+     * CoreFK simply extends LookupForeignKey to implement getLookupTableInfo to return the table that is passed into it.
+     * It also adds a String joinDescription for use as the column description.
+     */
     private class CoreFK extends LookupForeignKey
     {
         private final TableInfo _foreignTable;
@@ -480,8 +326,10 @@ public class CoreCollabAutoJoinTable extends VirtualTable
         }
     }
 
-    //A simple extension of FilteredTable that passes through all columns from the root table, hiding a predefined set
-    //TODO: Maybe find a way to hide unwanted columns more intelligently rather than a static predefined set
+    /**
+     * A simple extension of FilteredTable that passes through all columns from the root table, hiding a predefined set.
+     * TODO: Maybe find a way to hide unwanted columns more intelligently than with a static predefined set
+     */
     private class CCFilteredTable extends FilteredTable<UserSchema>
     {
 
@@ -507,7 +355,8 @@ public class CoreCollabAutoJoinTable extends VirtualTable
                 Collection<QueryException> errors = new ArrayList<>();
                 Collection<TableType> metadata;
                 //Get study.StudyData metadata, which applies to all queries and datasets
-                metadata = QueryService.get().findMetadataOverride(_joinedSchema, "StudyData", false, false, errors, null);
+                metadata = QueryService.get().findMetadataOverride(_joinedSchema, "StudyData",
+                        false, false, errors, null);
                 if (metadata != null)
                     overlayMetadata(metadata, _joinedSchema, errors);
                 //Get metadata for this table. This is picky about the XML filename - it has to be the name of the table, no label nonsense

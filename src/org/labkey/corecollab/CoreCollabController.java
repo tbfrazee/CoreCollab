@@ -77,21 +77,6 @@ public class CoreCollabController extends SpringActionController {
         setActionResolver(_actionResolver);
     }
 
-    @RequiresPermission(ReadPermission.class)
-    public class CoreTheWorldAction extends SimpleViewAction {
-        @Override
-        public ModelAndView getView(Object o, BindException errors) {
-            JspView view = new JspView("/org/labkey/corecollab/view/CoreTheWorld.jsp");
-            view.setTitle("CORE TEH WORLD!");
-            return view;
-        }
-
-        @Override
-        public NavTree appendNavTrail(NavTree root) {
-            return root;
-        }
-    }
-
     @RequiresPermission(AdminPermission.class)
     public class CCFolderSettingsAction extends FormViewAction<CCFolderSettingsForm>
     {
@@ -140,7 +125,8 @@ public class CoreCollabController extends SpringActionController {
                 {
                     try
                     {
-                        CoreCollabManager.get().setFolderType(getViewContext().getUser(), c, CoreCollabManager.FolderType.valueOf(fType));
+                        CoreCollabManager.get().setFolderType(getViewContext().getUser(), c,
+                                CoreCollabManager.FolderType.valueOf(fType));
                         form.addResponseText("Folder Type set to " + fType + ".");
                     }
                     catch (Exception e)
@@ -181,7 +167,8 @@ public class CoreCollabController extends SpringActionController {
             }
 
             //Set shared queries, if they have changed
-            if(!sharedQueries.equals(CoreCollabManager.get().getSharedQueryNames(c)) || !queryDatasets.equals(CoreCollabManager.get().getQueryPrimaryDatasetIds(c)))
+            if(!sharedQueries.equals(CoreCollabManager.get().getSharedQueryNames(c)) ||
+                    !queryDatasets.equals(CoreCollabManager.get().getQueryPrimaryDatasetIds(c)))
             {
                 if(!sharedQueries.isEmpty())
                 {
@@ -363,12 +350,14 @@ public class CoreCollabController extends SpringActionController {
                         }
                         catch (Exception e)
                         {
-                            errors.rejectValue("sharedQueries", "InvalidPrimaryDatasetSelection", null, "Error setting primary dataset for query " + qName);
+                            errors.rejectValue("sharedQueries", "InvalidPrimaryDatasetSelection",
+                                    null, "Error setting primary dataset for query " + qName);
                         }
                     }
                 }
                 if(!added)
-                    errors.rejectValue("sharedQueries", "InvalidPrimaryDatasetSelection", null, "No primary dataset chosen for selected query " + qName);
+                    errors.rejectValue("sharedQueries", "InvalidPrimaryDatasetSelection",
+                            null, "No primary dataset chosen for selected query " + qName);
             }
 
         }
@@ -479,10 +468,12 @@ public class CoreCollabController extends SpringActionController {
                 String newReportName = form.newReportName;
                 successurl = c != null ? c.getStartURL(getUser()) : null;
 
-                QueryDefinition qDef = makeQuery(form, errors, c, dsName, ds.getTableInfo(getUser(), true, true));
+                QueryDefinition qDef = makeQuery(form, errors, c, dsName, ds.getTableInfo(getUser(),
+                        true, true));
                 if (qDef == null)
                 {
-                    errors.reject("Query error", "An error has occurred in creating or retrieving the backing query. Please contact your server admin.");
+                    errors.reject("Query error",
+                            "An error has occurred in creating or retrieving the backing query. Please contact your server admin.");
                 }
 
                 try
@@ -500,18 +491,22 @@ public class CoreCollabController extends SpringActionController {
             return false;
         }
 
-        public QueryDefinition makeQuery(CreateTeamQueryForm form, BindException errors, Container c, String dsName, TableInfo dsTable)
+        public QueryDefinition makeQuery(CreateTeamQueryForm form, BindException errors, Container c,
+                                         String dsName, TableInfo dsTable)
         {
-            UserSchema targetSchema = new SimpleUserSchema("study", null, getUser(), c, DbSchema.get("study", DbSchemaType.Module));
+            UserSchema targetSchema = new SimpleUserSchema("study", null, getUser(), c,
+                    DbSchema.get("study", DbSchemaType.Module));
 
-            QueryDefinition existing = QueryService.get().getQueryDef(getUser(), getContainer(), "study", c.getName() + "_" + dsName);
+            QueryDefinition existing = QueryService.get().getQueryDef(getUser(), getContainer(), "study",
+                    c.getName() + "_" + dsName);
             if (existing != null)
             {
                 return existing;
             }
 
             SchemaKey qSchemaKey = new SchemaKey(null, targetSchema.getSchemaName());
-            QueryDefinition newDef = QueryService.get().createQueryDef(getUser(), getContainer(), qSchemaKey, c.getName() + "_" + dsName);
+            QueryDefinition newDef = QueryService.get().createQueryDef(getUser(), getContainer(), qSchemaKey,
+                    c.getName() + "_" + dsName);
 
             String sql = "SELECT * FROM \"" + c.getPath() + "\".study." + dsName;
 
@@ -588,7 +583,8 @@ public class CoreCollabController extends SpringActionController {
             return sb.toString();
         }
 
-        public Report createReport(CreateTeamQueryForm form, BindException errors, Container c, String newReportName, String dsName)
+        public Report createReport(CreateTeamQueryForm form, BindException errors, Container c,
+                                   String newReportName, String dsName)
         {
             DbScope scope = CoreSchema.getInstance().getSchema().getScope();
 

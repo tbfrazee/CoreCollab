@@ -11,15 +11,13 @@ import org.labkey.api.query.UserSchema;
  * Base customizer for study data in folders using CoreCollab.
  * Adds CCAutoJoinTables by default to appropriate tables.
  * Customizers of other modules for sites that implement CoreCollab should extend this class.
- * Typically, an extension of this class will be set as the customizer in the folder's StudyData query's metadata XML
+ * Typically, an extension of this class will be set as the customizer in the folder's StudyData query's metadata XML.
+ * This class uses the customize method to join CCAutoJoinTables. Unless you have good reason to change this behavior,
+ * leave customize as-is and override the customizeAfterAutoJoin method to implement your own table customizations.
  */
 
 public abstract class AbstractCoreCollabCustomizer implements TableCustomizer
 {
-    /**Establishes how the CCAutoJoinTable joins tables - either by date (table.date = joinedTable.date) or by most recent date (table.date >= joinTable.date)
-    * PREV incurs additional cost by adding a subquery to each row to find the proper date to match
-    * If you want to change it, this should be set in the constructor of your customizer (subclass of this)
-     */
     protected CCJoinType _joinType = CCJoinType.DATE;
 
     public AbstractCoreCollabCustomizer()
@@ -60,6 +58,19 @@ public abstract class AbstractCoreCollabCustomizer implements TableCustomizer
             }
         }
         customizeAfterAutoJoin(ti);
+    }
+
+    /**
+     * Sets the JoinType for this customizer that determines how the CCAutoJoinTable joins tables - either by exact
+     * date or most recent date.  Date is defined as (table.date = joinedTable.date) whereas most recent previous
+     * date is (table.date >= joinTable.date).
+     * PREV incurs additional cost by adding a subquery to each row to find the proper date to match
+     * If you want to change it, this should be set in the constructor of your customizer (subclass of this)
+     * @param joinType The joinType to use when joining tables to CCAutoJoinTable. Options are DATE or PREV.
+     */
+    public void setJoinType(CCJoinType joinType)
+    {
+        _joinType = joinType;
     }
 
     /**

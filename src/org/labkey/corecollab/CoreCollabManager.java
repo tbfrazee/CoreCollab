@@ -65,7 +65,9 @@ public class CoreCollabManager
         LAB
     }
 
-    public static final Set<String> defaultHiddenCols = new CaseInsensitiveHashSet("Container", "Folder", "VisitRowId", "SequenceNum", "Created", "CreatedBy", "ModifiedBy", "Modified", "lsid", "SourceLsid", "DSRowID", "QCState", "ParticipantSequenceNum", "dataset", "_key");
+    public static final Set<String> defaultHiddenCols = new CaseInsensitiveHashSet("Container",
+            "Folder", "VisitRowId", "SequenceNum", "Created", "CreatedBy", "ModifiedBy", "Modified",
+            "lsid", "SourceLsid", "DSRowID", "QCState", "ParticipantSequenceNum", "dataset", "_key");
 
     public void registerCCFolders()
     {
@@ -126,7 +128,8 @@ public class CoreCollabManager
     {
         FieldKey containerKey = new FieldKey(null, "container");
         FieldKey typeKey = new FieldKey(null, "type");
-        try(Results folderRegs = new TableSelector(CoreCollabSchema.getInstance().getSchema().getTable(CoreCollabSchema.REG_TABLE), new SimpleFilter(containerKey, c), null).getResults())
+        try(Results folderRegs = new TableSelector(CoreCollabSchema.getInstance().getSchema().getTable(CoreCollabSchema.REG_TABLE),
+                new SimpleFilter(containerKey, c), null).getResults())
         {
             //If there is not 1 row and only 1 row returned, something went wrong
             if(folderRegs.last())
@@ -175,9 +178,11 @@ public class CoreCollabManager
             try
             {
                 if (oldFType == FolderType.NONE)
-                    Table.insert(u, CoreCollabSchema.getInstance().getSchema().getTable(CoreCollabSchema.REG_TABLE), dataObj);
+                    Table.insert(u, CoreCollabSchema.getInstance().getSchema().getTable(CoreCollabSchema.REG_TABLE),
+                            dataObj);
                 else
-                    Table.update(u, CoreCollabSchema.getInstance().getSchema().getTable(CoreCollabSchema.REG_TABLE), dataObj, c.getEntityId().toString());
+                    Table.update(u, CoreCollabSchema.getInstance().getSchema().getTable(CoreCollabSchema.REG_TABLE),
+                            dataObj, c.getEntityId().toString());
             }
             catch (Exception e)
             {
@@ -217,7 +222,8 @@ public class CoreCollabManager
         FieldKey containerKey = new FieldKey(null, "container");
         FieldKey customizerKey = new FieldKey(null, "customizer");
         String ret;
-        try(Results results = new TableSelector(CoreCollabSchema.getInstance().getSchema().getTable(CoreCollabSchema.TEAM_QUERY_CUSTOMIZER_TABLE), new SimpleFilter(containerKey, c), null).getResults())
+        try(Results results = new TableSelector(CoreCollabSchema.getInstance().getSchema().getTable(CoreCollabSchema.TEAM_QUERY_CUSTOMIZER_TABLE),
+                new SimpleFilter(containerKey, c), null).getResults())
         {
             if(results.last())
             {
